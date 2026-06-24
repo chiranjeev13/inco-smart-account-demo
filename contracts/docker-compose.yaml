@@ -1,0 +1,17 @@
+# Inco local development node
+# Start with: docker compose up -d
+# Stop with: docker compose down
+
+services:
+  anvil:
+    image: inconetwork/local-node-anvil-mainnet:v1.0.0
+    ports:
+      - "8545:8545"
+
+  covalidator:
+    image: inconetwork/local-node-covalidator-mainnet:v1.0.0
+    depends_on:
+      anvil:
+        condition: service_healthy
+    ports:
+      - "50055:50055"

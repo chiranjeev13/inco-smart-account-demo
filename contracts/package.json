@@ -1,0 +1,23 @@
+{
+  "name": "inco-smart-account-demo-contracts",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy:local": "hardhat ignition deploy ignition/modules/ConfidentialVault.ts --network anvil",
+    "deploy:testnet": "hardhat ignition deploy ignition/modules/ConfidentialVault.ts --network baseSepolia",
+    "node": "docker compose up -d"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ignition": "^0.15.0",
+    "@nomicfoundation/hardhat-toolbox-viem": "^3.0.0",
+    "@nomicfoundation/hardhat-viem": "^2.0.0",
+    "hardhat": "^2.22.0",
+    "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "@inco/lightning": "latest",
+    "@openzeppelin/contracts": "^5.0.0"
+  }
+}
