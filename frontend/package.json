@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@inco/lightning-js": "latest",
+    "permissionless": "^0.3.6",
     "viem": "^2.21.0"
   },
   "devDependencies": {

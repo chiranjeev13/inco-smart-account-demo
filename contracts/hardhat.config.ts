@@ -27,6 +27,12 @@ const config: HardhatUserConfig = {
         ? [process.env.PRIVATE_KEY_BASE_SEPOLIA]
         : [],
     },
+    base: {
+      url: process.env.BASE_RPC_URL || "https://mainnet.base.org",
+      accounts: process.env.PRIVATE_KEY_BASE
+        ? [process.env.PRIVATE_KEY_BASE]
+        : [],
+    },
   },
 };
 
