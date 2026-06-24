@@ -15,7 +15,7 @@ import {
   encodeFunctionData,
   type Address,
 } from "viem";
-import { base } from "viem/chains";
+import { baseSepolia } from "viem/chains";
 import { privateKeyToAccount, generatePrivateKey } from "viem/accounts";
 import { toSafeSmartAccount } from "permissionless/accounts";
 import { createSmartAccountClient, entryPoint07Address } from "permissionless";
@@ -83,7 +83,7 @@ async function main() {
   // ─── Setup Clients ────────────────────────────────────────────
 
   const publicClient = createPublicClient({
-    chain: base,
+    chain: baseSepolia,
     transport: http(),
   });
 
@@ -93,7 +93,7 @@ async function main() {
   // Owner wallet client (for signing vouchers)
   const ownerWalletClient = createWalletClient({
     account: ownerAccount,
-    chain: base,
+    chain: baseSepolia,
     transport: http(),
   });
 
@@ -121,7 +121,7 @@ async function main() {
 
   // ─── Initialize Inco SDK ──────────────────────────────────────
 
-  const zap = await Lightning.baseMainnet();
+  const zap = await Lightning.baseSepoliaTestnet();
   console.log("\nInco SDK initialized for Base Mainnet");
 
   // ─── Create Ephemeral EOA for Decryption ──────────────────────
@@ -135,25 +135,32 @@ async function main() {
   const reencryptKeypair = await generateXwingKeypair();
   console.log("X-Wing keypair generated");
 
-  // ─── Smart Account Owner Grants Voucher ───────────────────────
+  // ─── Smart Account Signs Voucher ───────────────────────────────
 
-  console.log("\n--- Step 2: Owner Signs Voucher ---");
+  console.log("\n--- Step 2: Smart Account Signs Voucher ---");
 
   const expiresAt = new Date(Date.now() + 3600000); // 1 hour
 
-  // The voucher is signed by the OWNER EOA
-  // This grants the ephemeral EOA permission to decrypt handles
-  // that were allowed to addresses the owner controls
+  // Create a wallet client that uses the Safe account for signing
+  // This produces EIP-1271 signatures (contract signatures)
+  const safeWalletClient = createWalletClient({
+    account: safeAccount,
+    chain: baseSepolia,
+    transport: http(),
+  });
 
+  // The voucher is signed by the SMART ACCOUNT itself (EIP-1271)
+  // This is the correct approach - the smart account owns the handles
+  // and the smart account grants decryption rights
   const voucher = await zap.grantSessionKeyAllowanceVoucher(
-    ownerWalletClient,
+    safeWalletClient as any, // Safe account implements signTypedData
     ephemeralAccount.address,
     expiresAt,
     DEFAULT_SESSION_VERIFIER,
   );
 
   console.log("✓ Voucher granted!");
-  console.log("  Signed by:", ownerAccount.address);
+  console.log("  Signed by (Safe):", smartAccountAddress);
   console.log("  Grantee:", ephemeralAccount.address);
   console.log("  Expires:", expiresAt.toISOString());
 
@@ -174,7 +181,7 @@ async function main() {
 
     const smartAccountClient = createSmartAccountClient({
       account: safeAccount,
-      chain: base,
+      chain: baseSepolia,
       bundlerTransport: http(pimlicoUrl),
       paymaster: pimlicoClient,
       userOperation: {
@@ -281,16 +288,16 @@ async function main() {
   console.log("=".repeat(60));
   console.log("\nArchitecture:");
   console.log("┌─────────────────────────────────────────────────────────┐");
-  console.log("│  Owner EOA          →  signs vouchers                   │");
-  console.log("│  " + ownerAccount.address + "                 │");
-  console.log("│         │                                               │");
-  console.log("│         ↓ controls                                      │");
-  console.log("│  Safe Smart Account →  owns encrypted handles           │");
+  console.log("│  Safe Smart Account →  owns handles + signs vouchers    │");
   console.log("│  " + smartAccountAddress + "                 │");
+  console.log("│         │ (controlled by owner EOA)                     │");
   console.log("│         │                                               │");
-  console.log("│         ↓ voucher grants decryption                     │");
+  console.log("│         ↓ voucher grants decryption (EIP-1271 sig)      │");
   console.log("│  Ephemeral EOA      →  performs decryption              │");
   console.log("│  " + ephemeralAccount.address + "                 │");
+  console.log("│         │                                               │");
+  console.log("│         ↓ covalidator verifies via Session Verifier     │");
+  console.log("│  " + DEFAULT_SESSION_VERIFIER + "   │");
   console.log("└─────────────────────────────────────────────────────────┘");
 }
 
